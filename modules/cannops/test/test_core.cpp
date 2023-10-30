@@ -143,20 +143,31 @@ TEST(CORE, CROP_OVERLOAD)
 
 TEST(CORE, RESIZE)
 {
-    Mat resized_cv, checker, cpuMat = randomMat(10, 10, CV_32F, 100.0, 255.0);
-    Size dsize = Size(6, 6);
+    Mat resized_cv, checker, cpuMat = randomMat(256, 256, CV_32FC3, 100.0, 255.0);
+    Size dsize = Size(64, 64);
     // only support {2 INTER_CUBIC} and {3 INTER_AREA}
     // only the resize result of INTER_AREA is close to CV's.
     int flags = 3;
-    cv::cann::setDevice(0);
     cv::resize(cpuMat, resized_cv, dsize, 0, 0, flags);
     cv::cann::resize(cpuMat, checker, dsize, 0, 0, flags);
     EXPECT_MAT_NEAR(resized_cv, checker, 1e-4);
 
-    cv::resize(cpuMat, resized_cv, Size(), 0.6, 0.6, flags);
-    cv::cann::resize(cpuMat, checker, Size(), 0.6, 0.6, flags);
+    cv::resize(cpuMat, resized_cv, Size(), 0.5, 0.5, flags);
+    cv::cann::resize(cpuMat, checker, Size(), 0.5, 0.5, flags);
     EXPECT_MAT_NEAR(resized_cv, checker, 1e-4);
-    cv::cann::resetDevice();
+}
+
+TEST(CORE, RESIZE_DVPP)
+{
+    Mat resized_cv, checker, cpuMat = randomMat(256, 256, CV_8UC3, 100.0, 255.0);
+    Size dsize = Size(64, 64);
+    cv::resize(cpuMat, resized_cv, dsize, 0, 0, 1);
+    cv::cann::resizedvpp(cpuMat, checker, dsize, 0, 0, 0);
+    EXPECT_MAT_NEAR(resized_cv, checker, 1e-10);
+
+    cv::resize(cpuMat, resized_cv, Size(), 0.5, 0.5, 1);
+    cv::cann::resizedvpp(cpuMat, checker, Size(), 0.5, 0.5, 0);
+    EXPECT_MAT_NEAR(resized_cv, checker, 1e-10);
 }
 
 } // namespace

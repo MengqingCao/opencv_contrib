@@ -11,6 +11,7 @@ namespace
 {
 #define TYPICAL_ASCEND_MAT_SIZES \
     Values(::perf::sz1080p, ::perf::sz2K, ::perf::sz2160p, ::perf::sz4320p)
+#define RESIZE_ASCEND_MAT_SIZES Values(::perf::sz1080p, ::perf::sz2K)
 #define DEF_PARAM_TEST(name, ...) \
     typedef ::perf::TestBaseWithParam<testing::tuple<__VA_ARGS__>> name
 
@@ -157,5 +158,38 @@ PERF_TEST_P(NPU, CROP_OVERLOAD, TYPICAL_ASCEND_MAT_SIZES)
     cv::cann::resetDevice();
     SANITY_CHECK_NOTHING();
 }
+PERF_TEST_P(NPU, RESIZEDVPP, TYPICAL_ASCEND_MAT_SIZES)
+{
+    Mat mat(GET_PARAM(0), CV_8UC3);
+    Mat dst;
+    Size dsize = Size(256, 256);
+    declare.in(mat, WARMUP_RNG);
+    declare.iterations(10);
+    TEST_CYCLE() { cv::cann::resizedvpp(mat, dst, dsize, 0, 0, 0); }
+    SANITY_CHECK_NOTHING();
+}
+
+PERF_TEST_P(CPU, RESIZE, TYPICAL_ASCEND_MAT_SIZES)
+{
+    Mat mat(GET_PARAM(0), CV_8UC3);
+    Mat dst;
+    Size dsize = Size(256, 256);
+    declare.in(mat, WARMUP_RNG);
+    declare.iterations(10);
+    TEST_CYCLE() { cv::resize(mat, dst, dsize, 0, 0, 1); }
+    SANITY_CHECK_NOTHING();
+}
+
+PERF_TEST_P(NPU, RESIZE, TYPICAL_ASCEND_MAT_SIZES)
+{
+    Mat mat(GET_PARAM(0), CV_32FC3);
+    Mat dst;
+    Size dsize = Size(256, 256);
+    declare.in(mat, WARMUP_RNG);
+    declare.iterations(10);
+    TEST_CYCLE() { cv::cann::resize(mat, dst, dsize, 0, 0, 3); }
+    SANITY_CHECK_NOTHING();
+}
+
 } // namespace
 } // namespace opencv_test

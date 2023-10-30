@@ -343,7 +343,9 @@ enum InterpolationFlags
 CV_EXPORTS_W void resize(InputArray _src, OutputArray _dst, Size dsize, double inv_scale_x,
                          double inv_scale_y, int interpolation,
                          AscendStream& stream = AscendStream::Null());
-
+CV_EXPORTS_W void resizedvpp(InputArray _src, OutputArray _dst, Size dsize, double inv_scale_x,
+                             double inv_scale_y, int interpolation,
+                             AscendStream& stream = AscendStream::Null());
 /** @brief crop a 2D array.
 The function crops the matrix by given cv::Rect.
 Output matrix must be of the same depth as input one, size is specified by given rect size.

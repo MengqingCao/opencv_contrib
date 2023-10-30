@@ -3,7 +3,8 @@
 // of this distribution and at http://opencv.org/license.html.
 
 #include "precomp.hpp"
-
+#include <acl/ops/acl_dvpp.h>
+#include <iostream>
 namespace cv
 {
 namespace cann
@@ -267,6 +268,70 @@ void resize(InputArray _src, OutputArray _dst, Size dsize, double inv_scale_x, d
     int32_t dstSize[] = {dsize.width, dsize.height};
 
     resize(src, dst, dstSize, interpolation, stream);
+    syncOutput(dst, _dst, stream);
+}
+
+void resizedvpp(AscendMat& src, AscendMat& dst, int32_t* dstSize, int interpolation,
+                AscendStream& stream)
+{
+    DvppOperatorRunner op;
+    op.Init();
+    op.chnId = 0;
+    op.stChnAttr = {};
+    op.createChannel();
+
+    // BGR alignment
+    op.widthAlignment = 16;
+    op.heightAlignment = 1;
+    op.sizeAlignment = 3;
+    op.sizeNum = 3;
+
+    uint32_t taskID = 0;
+    int32_t sizeIn[] = {src.rows, src.cols};
+    op.setPic(sizeIn, &op.inputPic);
+    op.setPic(dstSize, &op.outputPic);
+
+    op.addInput(src);
+    op.addOutput(dst);
+    uint32_t ret = hi_mpi_vpc_resize(op.chnId, &op.inputPic, &op.outputPic, 0, 0, 0, &taskID, -1);
+
+    uint32_t taskIDResult = taskID;
+    ret = hi_mpi_vpc_get_process_result(op.chnId, taskIDResult, -1);
+    uint32_t size = dst.rows * dst.cols * dst.elemSize();
+    aclrtMemcpy(dst.data.get(), size, op.outputPic.picture_address, size,
+                ACL_MEMCPY_DEVICE_TO_DEVICE);
+    op.reset();
+}
+
+void resizedvpp(InputArray _src, OutputArray _dst, Size dsize, double inv_scale_x,
+                double inv_scale_y, int interpolation, AscendStream& stream)
+{
+    AscendMat src = getInputMat(_src, stream);
+    Size ssize = _src.size();
+    CV_Assert(!ssize.empty());
+    float_t scaleX = (float_t)inv_scale_x;
+    float_t scaleY = (float_t)inv_scale_y;
+    // CV_Assert(interpolation == INTER_CUBIC || interpolation == INTER_AREA);
+
+    if (dsize.empty())
+    {
+        CV_Assert(scaleX > 0);
+        CV_Assert(scaleY > 0);
+        dsize = Size(saturate_cast<int>(ssize.width * inv_scale_x),
+                     saturate_cast<int>(ssize.height * inv_scale_y));
+        CV_Assert(!dsize.empty());
+    }
+    else
+    {
+        scaleX = (float_t)dsize.width / ssize.width;
+        scaleY = (float_t)dsize.height / ssize.height;
+        CV_Assert(scaleX > 0);
+        CV_Assert(scaleY > 0);
+    }
+    AscendMat dst = getOutputMat(_dst, dsize.height, dsize.width, src.type(), stream);
+    int32_t dstSize[] = {dsize.width, dsize.height};
+
+    resizedvpp(src, dst, dstSize, 0, stream);
     syncOutput(dst, _dst, stream);
 }
 
