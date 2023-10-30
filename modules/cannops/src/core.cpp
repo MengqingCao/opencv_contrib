@@ -306,7 +306,7 @@ void resizedvpp(AscendMat& src, AscendMat& dst, int32_t* dstSize, int interpolat
 void resizedvpp(InputArray _src, OutputArray _dst, Size dsize, double inv_scale_x,
                 double inv_scale_y, int interpolation, AscendStream& stream)
 {
-    AscendMat src = getInputMat(_src, stream);
+    // AscendMat src = getInputMat(_src, stream);
     Size ssize = _src.size();
     CV_Assert(!ssize.empty());
     float_t scaleX = (float_t)inv_scale_x;
@@ -328,11 +328,40 @@ void resizedvpp(InputArray _src, OutputArray _dst, Size dsize, double inv_scale_
         CV_Assert(scaleX > 0);
         CV_Assert(scaleY > 0);
     }
-    AscendMat dst = getOutputMat(_dst, dsize.height, dsize.width, src.type(), stream);
+    // AscendMat dst = getOutputMat(_dst, dsize.height, dsize.width, src.type(), stream);
     int32_t dstSize[] = {dsize.width, dsize.height};
 
-    resizedvpp(src, dst, dstSize, 0, stream);
-    syncOutput(dst, _dst, stream);
+    // resizedvpp(src, dst, dstSize, 0, stream);
+    // syncOutput(dst, _dst, stream);
+
+    Mat src = _src.getMat();
+    _dst.create(dsize.width, dsize.height, src.type());
+    Mat dst = _dst.getMat();
+
+    DvppOperatorRunner op;
+    op.Init();
+    op.chnId = 0;
+    op.stChnAttr = {};
+    op.createChannel();
+
+    // BGR alignment
+    op.widthAlignment = 16;
+    op.heightAlignment = 1;
+    op.sizeAlignment = 3;
+    op.sizeNum = 3;
+
+    uint32_t taskID = 0;
+    int32_t sizeIn[] = {src.rows, src.cols};
+    op.setPic(sizeIn, &op.inputPic);
+    op.setPic(dstSize, &op.outputPic);
+    op.addInput(src);
+    op.addOutput(dst);
+    uint32_t ret = hi_mpi_vpc_resize(op.chnId, &op.inputPic, &op.outputPic, 0, 0, 0, &taskID, -1);
+    hi_mpi_vpc_convert_color(op.chnId, &op.inputPic, &op.outputPic, &taskID, -1);
+
+    uint32_t taskIDResult = taskID;
+    op.getResult(dst, taskIDResult);
+    op.reset();
 }
 
 } // namespace cann

@@ -109,6 +109,17 @@ DvppOperatorRunner& DvppOperatorRunner::addInput(AscendMat& mat)
                 inputPic.picture_buffer_size, ACL_MEMCPY_DEVICE_TO_DEVICE);
     return *this;
 }
+DvppOperatorRunner& DvppOperatorRunner::addInput(Mat& mat)
+{
+    uint32_t size = mat.rows * mat.cols * mat.elemSize();
+    inputPic.picture_buffer_size =
+        inputPic.picture_width_stride * inputPic.picture_height_stride * sizeAlignment / sizeNum;
+
+    uint32_t ret = hi_mpi_dvpp_malloc(0, &inputPic.picture_address, inputPic.picture_buffer_size);
+    aclrtMemcpy(inputPic.picture_address, inputPic.picture_buffer_size, mat.data,
+                inputPic.picture_buffer_size, ACL_MEMCPY_DEVICE_TO_DEVICE);
+    return *this;
+}
 
 DvppOperatorRunner& DvppOperatorRunner::addOutput(AscendTensor& tensor)
 {
@@ -131,6 +142,25 @@ DvppOperatorRunner& DvppOperatorRunner::addOutput(AscendMat& mat)
 
     aclrtMemset(outputPic.picture_address, outputPic.picture_buffer_size, 0,
                 outputPic.picture_buffer_size);
+    return *this;
+}
+
+DvppOperatorRunner& DvppOperatorRunner::addOutput(Mat& mat)
+{
+    outputPic.picture_address = mat.data;
+    outputPic.picture_buffer_size = mat.rows * mat.cols * mat.elemSize();
+    uint32_t ret = hi_mpi_dvpp_malloc(0, &outputPic.picture_address, outputPic.picture_buffer_size);
+
+    aclrtMemset(outputPic.picture_address, outputPic.picture_buffer_size, 0,
+                outputPic.picture_buffer_size);
+    return *this;
+}
+
+DvppOperatorRunner& DvppOperatorRunner::getResult(Mat& dst, uint32_t& taskIDResult)
+{
+    hi_mpi_vpc_get_process_result(chnId, taskIDResult, -1);
+    aclrtMemcpy(dst.data, outputPic.picture_buffer_size, outputPic.picture_address, outputPic.picture_buffer_size, ACL_MEMCPY_DEVICE_TO_DEVICE);
+    return *this;
 }
 
 } // namespace cann

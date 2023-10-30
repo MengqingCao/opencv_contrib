@@ -48,6 +48,9 @@ public:
     virtual ~DvppOperatorRunner() { reset(); }
     DvppOperatorRunner& addInput(AscendMat& mat);
     DvppOperatorRunner& addOutput(AscendMat& mat);
+    DvppOperatorRunner& addInput(Mat& mat);
+    DvppOperatorRunner& addOutput(Mat& mat);
+    DvppOperatorRunner& getResult(Mat& dst, uint32_t& taskIDResult);
 
     DvppOperatorRunner& reset();
     DvppOperatorRunner& createChannel();

@@ -164,8 +164,7 @@ PERF_TEST_P(NPU, RESIZEDVPP, TYPICAL_ASCEND_MAT_SIZES)
     Mat dst;
     Size dsize = Size(256, 256);
     declare.in(mat, WARMUP_RNG);
-    declare.iterations(10);
-    TEST_CYCLE() { cv::cann::resizedvpp(mat, dst, dsize, 0, 0, 0); }
+    TEST_CYCLE_N(10) { cv::cann::resizedvpp(mat, dst, dsize, 0, 0, 0); }
     SANITY_CHECK_NOTHING();
 }
 
@@ -175,8 +174,7 @@ PERF_TEST_P(CPU, RESIZE, TYPICAL_ASCEND_MAT_SIZES)
     Mat dst;
     Size dsize = Size(256, 256);
     declare.in(mat, WARMUP_RNG);
-    declare.iterations(10);
-    TEST_CYCLE() { cv::resize(mat, dst, dsize, 0, 0, 1); }
+    TEST_CYCLE_N(10) { cv::resize(mat, dst, dsize, 0, 0, 1); }
     SANITY_CHECK_NOTHING();
 }
 
@@ -186,8 +184,7 @@ PERF_TEST_P(NPU, RESIZE, TYPICAL_ASCEND_MAT_SIZES)
     Mat dst;
     Size dsize = Size(256, 256);
     declare.in(mat, WARMUP_RNG);
-    declare.iterations(10);
-    TEST_CYCLE() { cv::cann::resize(mat, dst, dsize, 0, 0, 3); }
+    TEST_CYCLE_N(10) { cv::cann::resize(mat, dst, dsize, 0, 0, 3); }
     SANITY_CHECK_NOTHING();
 }
 
